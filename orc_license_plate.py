@@ -30,9 +30,9 @@ for image_path in image_paths:
 
     (lp_text, lp_cnt) = anpr.find_and_ocr(image, psm=args["psm"],
                                         clear_border=args["clear_border"] > 0)
-    print(args['psm'])
-    print(args["clear_border"])
-    print(lp_text)
+    # print(args['psm'])
+    # print(args["clear_border"])
+    # print(lp_text)
 
     '''if lp_text is not None or lp_cnt is not None:
         box = cv2.boxPoints(cv2.minAreaRect(lp_cnt))
