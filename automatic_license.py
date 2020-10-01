@@ -6,7 +6,7 @@ import pytesseract
 
 
 class py_image_search_ANPR:
-    def __init__(self, minAR=4, maxAR=5, debug=False):
+    def __init__(self, minAR=2, maxAR=3, debug=False):
         self.minAR = minAR
         self.maxAR = maxAR
         self.debug = debug
@@ -26,7 +26,7 @@ class py_image_search_ANPR:
         square_kern = cv2.getStructuringElement(cv2.MORPH_RECT, (3, 3))
         light = cv2.morphologyEx(gray, cv2.MORPH_CLOSE, square_kern)
         light = cv2.threshold(light, 0, 255,
-                      cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+                              cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
         self.debug_imshow("Light Regions", light)
 
         grad_x = cv2.Sobel(blackhat, ddepth=cv2.CV_32F, dx=1, dy=0, ksize=-1)
@@ -39,7 +39,7 @@ class py_image_search_ANPR:
         grad_x = cv2.GaussianBlur(grad_x, (5, 5), 0)
         grad_x = cv2.morphologyEx(grad_x, cv2.MORPH_CLOSE, rect_kern)
         thresh = cv2.threshold(grad_x, 0, 255,
-                        cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
+                               cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
         self.debug_imshow("Grad Thresh", thresh)
 
         thresh = cv2.erode(thresh, None, iterations=2)
@@ -64,26 +64,27 @@ class py_image_search_ANPR:
         for c in candidates:
             (x, y, w, h) = cv2.boundingRect(c)
             ar = w / float(h)
-
-            if ar >= self.minAR and ar <= self.maxAR:
+            if self.minAR <= ar <= self.maxAR:
                 lp_cnt = c
                 license_plate = gray[y: y + h, x: x + w]
                 roi = cv2.threshold(license_plate, 0, 255,
-                        cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+                                    cv2.THRESH_BINARY | cv2.THRESH_OTSU)[1]
 
                 if clear_boder:
                     roi = clear_boder(roi)
 
                 self.debug_imshow("License Plate", license_plate)
-                self.debug_imshow("Roi", roi, wait_key=True)
+                self.debug_imshow("Roi", roi, wait_key=False)
                 break
-            return (roi, lp_cnt)
+        return roi, lp_cnt
 
     def build_tesseract_option(self, psm=7):
+        options = ""
         alphanumeric = "ABCDEFGHIJKLMNOPQRSTUWXYZ0123456789"
-        options = "-c tessedit_char_whitelist{}".format(alphanumeric)
-
+        options = "-c tessedit_char_whitelist={}".format(alphanumeric)
+        options += " -l eng"
         options += " --psm {}".format(psm)
+        options += " -oem 3"
 
         return options
 
@@ -92,11 +93,11 @@ class py_image_search_ANPR:
         gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
         candidates = self.locate_license_plate_candidates(gray)
         (lp, lp_cnt) = self.locate_license_plate(gray,
-                            candidates, clear_boder=clear_border)
+                                                 candidates, clear_boder=clear_border)
 
         if lp is not None:
             options = self.build_tesseract_option(psm=psm)
             lp_text = pytesseract.image_to_string(lp, config=options)
             self.debug_imshow("License", lp)
 
-        return (lp_text, lp_cnt)
+        return lp_text, lp_cnt
