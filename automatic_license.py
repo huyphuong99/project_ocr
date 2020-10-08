@@ -24,7 +24,7 @@ class PyImageSearchANPR:
     def locate_license_plate_candidates(self, gray, keep=5):
 
         rectKern = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 5))
-        #blackhat1 = cv2.GaussianBlur(rectKern, (5,5), 0)
+        # blackhat1 = cv2.GaussianBlur(rectKern, (5,5), 0)
         blackhat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, rectKern)
 
         self.debug_imshow("Blackhat", blackhat)
@@ -64,7 +64,6 @@ class PyImageSearchANPR:
         cnts = sorted(cnts, key=cv2.contourArea, reverse=True)[:keep]
         # self.debug_imshow("cnts", cnts, waitKey=True)
 
-
         return cnts
 
     def locate_license_plate(self, gray, candidates,
@@ -79,14 +78,13 @@ class PyImageSearchANPR:
 
             ar = w / float(h)
 
-            if ar >= self.minAR and ar <= self.maxAR:
-                cv2.drawContours(gray, [c], -1, (0, 255, 0), 2)
-                #self.debug_imshow("contours image", temp)
+            if self.minAR <= ar <= self.maxAR:
 
                 lpCnt = c
                 licensePlate = gray[y:y + h, x:x + w]
                 roi = cv2.threshold(licensePlate, 0, 255,
                                     cv2.THRESH_BINARY_INV | cv2.THRESH_OTSU)[1]
+                cv2.drawContours(gray, [c], -1, (0, 255, 0), 2)
 
                 if clearBorder:
                     roi = clear_border(roi)
@@ -96,7 +94,7 @@ class PyImageSearchANPR:
 
                 break
 
-        return (roi, lpCnt)
+        return roi, lpCnt
 
     def build_tesseract_options(self, psm=7):
 
@@ -107,7 +105,6 @@ class PyImageSearchANPR:
 
         return options
 
-
     def find_and_ocr(self, image, psm=7, clearBorder=False):
 
         lpText = None
@@ -117,11 +114,9 @@ class PyImageSearchANPR:
         (lp, lpCnt) = self.locate_license_plate(gray, candidates,
                                                 clearBorder=clearBorder)
 
-
         if lp is not None:
             options = self.build_tesseract_options(psm=psm)
             lpText = pytesseract.image_to_string(lp, config=options)
             self.debug_imshow("License Plate <3", lp)
 
         return (lpText, lpCnt)
-
